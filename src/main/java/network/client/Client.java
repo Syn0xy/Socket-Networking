@@ -1,48 +1,37 @@
 package network.client;
 
+import java.io.IOException;
 import java.net.Socket;
-import java.util.Scanner;
-  
- public class Client extends Thread {
 
-    private String serverName;
+import network.SocketThread;
+import network.model.Message;
 
-    private int serverPort;
+public class Client extends SocketThread {
 
-    public Client(String serverName, int serverPort) {
-        this.serverName = serverName;
-        this.serverPort = serverPort;
-        this.start();
+    private static final int DEFAULT_ID = -1;
+
+    private int id;
+    
+    public Client(String serverName, int serverPort) throws IOException {
+        super(new Socket(serverName, serverPort));
+        this.id = DEFAULT_ID;
     }
 
     @Override
-    public void run() {
-        try (Socket socket = new Socket(this.serverName, this.serverPort)) {
-            ClientThread clientThread = new ClientThread(socket);
-            clientThread.start();
-            
-            clientThread.on("test", () -> {
-                System.out.println("client -> un test");
-            });
-            
-            try (Scanner scanner = new Scanner(System.in)) {
-                System.out.println("Enter your name:");
-                String clientName = "empty";
-                String userInput = scanner.nextLine();
-                clientName = userInput;
-                String userMessage = "(" + clientName + ")" + ": ";
-                
-                do {
-                    System.out.print(userMessage);
-                    userInput = scanner.nextLine();
-                    clientThread.emit(userInput);
-                } while (!userInput.equals("exit"));
-            } catch (Exception e) {
-                System.err.println("Exception occured for scanner: " + e.getMessage());
-            }
-        } catch (Exception e) {
-            System.err.println("Exception occured in client main: " + e.getMessage());
+    public int getID() {
+        return this.id;
+    }
+    
+    @Override
+    protected void receive(Message inputMessage) {
+        String message = inputMessage.getMessage();
+        Object object = inputMessage.getObject();
+        
+        System.out.println("Client received: '" + message + "';'" + object + "'");
+        if (message.equals("connection") && object != null) {
+            this.id = (int) object;
         }
+        super.receive(inputMessage);
     }
 
 }

@@ -3,14 +3,12 @@ package network.server;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.function.Consumer;
 
 import network.SocketThread;
+import network.model.SocketAction;
 
-public class Server extends Thread {
+public class Server extends SocketAction<SocketThread> {
 
     private static final String CONNECTION_ACTION = "connection";
     
@@ -18,12 +16,9 @@ public class Server extends Thread {
     
     private List<SocketThread> sockets;
 
-    private Map<String, List<Consumer<SocketThread>>> actions;
-
     public Server(int port) {
         this.port = port;
         this.sockets = new ArrayList<>();
-        this.actions = new HashMap<>();
         this.start();
     }
 
@@ -32,29 +27,27 @@ public class Server extends Thread {
         try (ServerSocket serverSocket = new ServerSocket(port)) {
             while (true) {
                 Socket socket = serverSocket.accept();
-                ServerThread serverThread = new ServerThread(socket);
-                serverThread.start();
-                sockets.add(serverThread);
-
-                this.actions.get(CONNECTION_ACTION).forEach(consumer -> {
-                    consumer.accept(serverThread);
-                });
+                SocketThread socketThread = new ServerThread(socket);
+                sockets.add(socketThread);
+                
+                this.on(CONNECTION_ACTION, socketThread);
+                
+                socketThread.emit("connection", socketThread.getID());
             }
         } catch (Exception e) {
             System.err.println("Error occured in server main: " + e.getMessage());
         }
     }
 
-    public void on(String message, Consumer<SocketThread> action) {
-        if (!this.actions.containsKey(message)) {
-            this.actions.put(message, new ArrayList<>());
-        }
-        this.actions.get(message).add(action);
-    }
-
     public void emit(String message) {
         this.sockets.forEach(socket -> {
             socket.emit(message);
+        });
+    }
+
+    public void emit(String message, Object object) {
+        this.sockets.forEach(socket -> {
+            socket.emit(message, object);
         });
     }
 
