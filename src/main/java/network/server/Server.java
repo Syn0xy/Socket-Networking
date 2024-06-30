@@ -2,11 +2,11 @@ package network.server;
 
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Map;
 
-import network.SocketThread;
+import network.model.Packet;
 import network.model.SocketAction;
+import network.model.SocketThread;
 
 public class Server extends SocketAction<SocketThread> {
 
@@ -14,11 +14,11 @@ public class Server extends SocketAction<SocketThread> {
     
     private int port;
     
-    private List<SocketThread> sockets;
+    private Map<Integer, SocketThread> sockets;
 
     public Server(int port) {
         this.port = port;
-        this.sockets = new ArrayList<>();
+        this.sockets = ServerThread.SERVER_THREADS;
         this.start();
     }
 
@@ -28,26 +28,26 @@ public class Server extends SocketAction<SocketThread> {
             while (true) {
                 Socket socket = serverSocket.accept();
                 SocketThread socketThread = new ServerThread(socket);
-                sockets.add(socketThread);
                 
+                socketThread.emit(CONNECTION_ACTION, socketThread.getID());
                 this.on(CONNECTION_ACTION, socketThread);
-                
-                socketThread.emit("connection", socketThread.getID());
             }
         } catch (Exception e) {
             System.err.println("Error occured in server main: " + e.getMessage());
         }
     }
 
-    public void emit(String message) {
-        this.sockets.forEach(socket -> {
-            socket.emit(message);
+    public void emit(String token) {
+        Packet outputPacket = new Packet(token);
+        this.sockets.values().forEach(socket -> {
+            socket.emit(outputPacket);
         });
     }
 
-    public void emit(String message, Object object) {
-        this.sockets.forEach(socket -> {
-            socket.emit(message, object);
+    public void emit(String token, Object data) {
+        Packet outputPacket = new Packet(token, data);
+        this.sockets.values().forEach(socket -> {
+            socket.emit(outputPacket);
         });
     }
 

@@ -15,13 +15,17 @@ public class Main {
         socket.on("connection", () -> {
             System.out.println("Socket connectée: [id=" + socket.getID() + "]");
             
-            socket.on("callback_id", (object) -> {
-                System.out.println("Your id: " + (int)object);
+            socket.on("callback_id", (data) -> {
+                System.out.println("Your id: " + data.toType(int.class));
             });
             
-            socket.on("callback_player_position", (object) -> {
-                int[] array = (int[])object;
+            socket.on("callback_player_position", (data) -> {
+                int[] array = data.toType(int[].class);
                 System.out.println(Arrays.toString(array));
+            });
+
+            socket.on("disconnect", () -> {
+                System.err.println("Socket déconnectée: [id=" + socket.getID() + "]");
             });
             
             new Thread(() -> chat(socket)).start();
@@ -32,10 +36,15 @@ public class Main {
         try (Scanner scanner = new Scanner(System.in)) {
             String userInput;
             String userMessage = "(client" + socket.getID() + "): ";
-
+        
             while (true) {
                 System.out.print(userMessage);
                 userInput = scanner.nextLine();
+
+                if (!socket.isConnect()) {
+                    break;
+                }
+                
                 socket.emit(userInput);
             }
         } catch (Exception e) {
