@@ -11,43 +11,43 @@ public class Client extends SocketThread {
 
     private static final String CONNECTION_ACTION = "connection";
 
-    private static final int DEFAULT_ID = -1;
+    private static final String DEFAULT_ID = null;
 
-    private int id;
+    private String ID;
 
     private boolean isConnect;
     
-    public Client(String serverName, int serverPort) throws IOException {
+    public Client(final String serverName, final int serverPort) throws IOException {
         super(new Socket(serverName, serverPort));
-        this.id = DEFAULT_ID;
+        this.ID = Client.DEFAULT_ID;
     }
 
     @Override
-    public int getID() {
-        return this.id;
+    public String getID() {
+        return this.ID;
     }
 
     public boolean isConnect() {
-        return isConnect;
+        return this.isConnect;
     }
     
-    @Override
-    protected void receive(Packet inputPacket) {
-        String token = inputPacket.getToken();
-        PacketObject data = inputPacket.getData();
-        
-        // System.out.println("Client received: " + inputPacket);
-        if (token.equals(CONNECTION_ACTION) && data != null) {
-            this.id = data.toType(int.class);
-            this.isConnect = true;
-        }
-        super.receive(inputPacket);
-    }
-
     @Override
     public void destroy() {
         this.isConnect = false;
         super.destroy();
+    }
+
+    @Override
+    protected void receive(final Packet inputPacket) {
+        final String token = inputPacket.getToken();
+        final PacketObject data = inputPacket.getData();
+        
+        // System.out.println("Client received: " + inputPacket);
+        if (token.equals(Client.CONNECTION_ACTION) && data != null) {
+            this.ID = data.toType(String.class);
+            this.isConnect = true;
+        }
+        super.receive(inputPacket);
     }
 
 }

@@ -6,7 +6,7 @@ public class PacketObject {
 
     private String json;
 
-    public PacketObject(String json) {
+    public PacketObject(final String json) {
         this.json = json;
     }
 
@@ -16,7 +16,7 @@ public class PacketObject {
         return json;
     }
 
-    public <T> T toType(Class<T> classType) {
+    public <T> T toType(final Class<T> classType) {
         return TranslatorJson.parse(this.json, classType);
     }
 

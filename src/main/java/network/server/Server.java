@@ -2,6 +2,7 @@ package network.server;
 
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Collection;
 import java.util.Map;
 
 import network.model.Packet;
@@ -12,13 +13,16 @@ public class Server extends SocketAction<SocketThread> {
 
     private static final String CONNECTION_ACTION = "connection";
     
-    private int port;
+    private final int port;
     
-    private Map<Integer, SocketThread> sockets;
+    private final Map<String, SocketThread> indexedSockets;
 
-    public Server(int port) {
+    private final Collection<SocketThread> sockets;
+
+    public Server(final int port) {
         this.port = port;
-        this.sockets = ServerThread.SERVER_THREADS;
+        this.indexedSockets = ServerThread.SERVER_THREADS;
+        this.sockets = this.indexedSockets.values();
         this.start();
     }
 
@@ -26,29 +30,25 @@ public class Server extends SocketAction<SocketThread> {
     public void run() {
         try (ServerSocket serverSocket = new ServerSocket(port)) {
             while (true) {
-                Socket socket = serverSocket.accept();
-                SocketThread socketThread = new ServerThread(socket);
+                final Socket socket = serverSocket.accept();
+                final SocketThread socketThread = new ServerThread(socket);
                 
-                socketThread.emit(CONNECTION_ACTION, socketThread.getID());
-                this.on(CONNECTION_ACTION, socketThread);
+                socketThread.emit(Server.CONNECTION_ACTION, socketThread.getID());
+                this.on(Server.CONNECTION_ACTION, socketThread);
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             System.err.println("Error occured in server main: " + e.getMessage());
         }
     }
 
-    public void emit(String token) {
-        Packet outputPacket = new Packet(token);
-        this.sockets.values().forEach(socket -> {
-            socket.emit(outputPacket);
-        });
+    public void emit(final String token) {
+        final Packet outputPacket = new Packet(token);
+        this.sockets.forEach(socket -> socket.emit(outputPacket));
     }
 
-    public void emit(String token, Object data) {
-        Packet outputPacket = new Packet(token, data);
-        this.sockets.values().forEach(socket -> {
-            socket.emit(outputPacket);
-        });
+    public void emit(final String token, final Object data) {
+        final Packet outputPacket = new Packet(token, data);
+        this.sockets.forEach(socket -> socket.emit(outputPacket));
     }
 
 }

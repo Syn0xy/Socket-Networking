@@ -8,31 +8,30 @@ import java.util.function.Consumer;
 
 public abstract class SocketAction<T> extends Thread {
 
-    private Map<String, List<Consumer<T>>> actions;
+    private final Map<String, List<Consumer<T>>> actions;
 
     public SocketAction() {
         this.actions = new ConcurrentHashMap<>();
     }
 
-    public abstract void emit(String token);
+    public abstract void emit(final String token);
 
-    public abstract void emit(String token, Object data);
+    public abstract void emit(final String token, final Object data);
 
-    public void on(String token, Consumer<T> action) {
-        if (!this.actions.containsKey(token)) {
-            this.actions.put(token, new ArrayList<>());
-        }
-        this.actions.get(token).add(action);
+    public void on(final String token, final Consumer<T> action) {
+        this.actions
+            .computeIfAbsent(token, s -> new ArrayList<>())
+            .add(action);
     }
 
-    protected void on(String token, T type) {
+    protected void on(final String token, final T type) {
         if (!this.actions.containsKey(token)) {
             return;
         }
         
-        this.actions.get(token).forEach(action -> {
-            action.accept(type);
-        });
+        this.actions
+            .get(token)
+            .forEach(action -> action.accept(type));
     }
     
 }

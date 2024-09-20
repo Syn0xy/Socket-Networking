@@ -7,16 +7,16 @@ public class TranslatorJson {
     
     private static final ObjectMapper MAPPER = new ObjectMapper();
         
-    public static String stringify(Object object) {
+    public static String stringify(final Object object) {
         try {
             return MAPPER.writeValueAsString(object);
-        } catch (JsonProcessingException e) {
+        } catch (final JsonProcessingException e) {
             System.err.println(e.getMessage());
         }
         return null;
     }
 
-    public static <T> T parse(String json, Class<T> classType) {
+    public static <T> T parse(final String json, final Class<T> classType) {
         try {
             if (json == null) {
                 throw new NullPointerException();

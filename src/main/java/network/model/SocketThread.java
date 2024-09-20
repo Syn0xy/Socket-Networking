@@ -19,20 +19,20 @@ public abstract class SocketThread extends SocketAction<PacketObject> implements
 
     private static final String DISCONNECT_ACTION = "disconnect";
 
-    private Socket socket;
+    private final Socket socket;
 
-    private PrintWriter output;
+    private final PrintWriter output;
 
-    private Map<String, List<Runnable>> runnableActions;
+    private final Map<String, List<Runnable>> actions;
 
-    public SocketThread(Socket socket) throws IOException {
+    public SocketThread(final Socket socket) throws IOException {
         this.socket = socket;
         this.output = this.getPrinter();
-        this.runnableActions = new HashMap<>();
+        this.actions = new HashMap<>();
         this.start();
     }
 
-    public abstract int getID();
+    public abstract String getID();
     
     public OutputStream getOutputStream() throws IOException {
         return this.socket.getOutputStream();
@@ -50,13 +50,12 @@ public abstract class SocketThread extends SocketAction<PacketObject> implements
     public void run() {
         try (BufferedReader input = new BufferedReader(new InputStreamReader(this.getInputStream()))) {
             while (true) {
-                String inputString = input.readLine();
+                final String inputString = input.readLine();
                 
                 this.receive(TranslatorJson.parse(inputString, Packet.class));
             }
-        } catch (IOException e) {
+        } catch (final IOException e) {
             System.err.println("Error occured in socket thread: " + e.getMessage());
-            e.printStackTrace();
         } finally {
             this.destroy();
         }
@@ -64,44 +63,44 @@ public abstract class SocketThread extends SocketAction<PacketObject> implements
 
     @Override
     public void destroy() {
-        this.receive(new Packet(DISCONNECT_ACTION));
+        this.receive(new Packet(SocketThread.DISCONNECT_ACTION));
     }
     
-    protected void receive(Packet inputPacket) {
-        String token = inputPacket.getToken();
-        PacketObject data = inputPacket.getData();
+    public void emit(final Packet outputPacket) {
+        try {
+            final String jsonPacket = TranslatorJson.stringify(outputPacket);
+            this.output.println(jsonPacket);
+        } catch (final Exception e) {
+            System.err.println("Error occured on socket object output: " + e.getMessage());
+        }
+    }
+
+    public void emit(final String token, final Object data) {
+        this.emit(new Packet(token, data));
+    }
+
+    public void emit(final String token) {
+        this.emit(new Packet(token));
+    }
+
+    public void on(final String token, final Runnable action) {
+        if (!this.actions.containsKey(token)) {
+            this.actions.put(token, new ArrayList<>());
+        }
+        this.actions.get(token).add(action);
+    }
+
+    protected void receive(final Packet inputPacket) {
+        final String token = inputPacket.getToken();
+        final PacketObject data = inputPacket.getData();
         
-        if (this.runnableActions.containsKey(token)) {
-            this.runnableActions.get(token).forEach(Runnable::run);
+        if (this.actions.containsKey(token)) {
+            this.actions.get(token).forEach(Runnable::run);
         }
         
         if (data != null) {
             this.on(token, data);
         }
-    }
-
-    public void emit(Packet outputPacket) {
-        try {
-            String jsonPacket = TranslatorJson.stringify(outputPacket);
-            this.output.println(jsonPacket);
-        } catch (Exception e) {
-            System.err.println("Error occured on socket object output: " + e.getMessage());
-        }
-    }
-
-    public void emit(String token, Object data) {
-        this.emit(new Packet(token, data));
-    }
-
-    public void emit(String token) {
-        this.emit(new Packet(token));
-    }
-
-    public void on(String token, Runnable action) {
-        if (!this.runnableActions.containsKey(token)) {
-            this.runnableActions.put(token, new ArrayList<>());
-        }
-        this.runnableActions.get(token).add(action);
     }
     
 }

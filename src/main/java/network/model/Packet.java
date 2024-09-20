@@ -10,7 +10,7 @@ public class Packet implements Serializable {
 
     private PacketObject data;
 
-    public Packet(String token, Object object) {
+    public Packet(final String token, final Object object) {
         this.token = token;
         
         if (object != null) {
@@ -20,7 +20,7 @@ public class Packet implements Serializable {
         }
     }
 
-    public Packet(String token) {
+    public Packet(final String token) {
         this(token, null);
     }
 
